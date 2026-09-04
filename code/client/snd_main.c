@@ -166,6 +166,7 @@ S_AddLoopingSound
 void S_AddLoopingSound( int entityNum, const vec3_t origin,
 		const vec3_t velocity, sfxHandle_t sfx )
 {
+	if ( !sfx ) return; // [AP] CPMA loop sound fix
 	if( si.AddLoopingSound ) {
 		si.AddLoopingSound( entityNum, origin, velocity, sfx );
 	}
@@ -180,6 +181,7 @@ S_AddRealLoopingSound
 void S_AddRealLoopingSound( int entityNum, const vec3_t origin,
 		const vec3_t velocity, sfxHandle_t sfx )
 {
+	if ( !sfx ) return; // [AP] CPMA loop sound fix
 	if( si.AddRealLoopingSound ) {
 		si.AddRealLoopingSound( entityNum, origin, velocity, sfx );
 	}

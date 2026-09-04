@@ -141,6 +141,13 @@ static void CL_Download_f( void );
 static void CL_LocalServers_f( void );
 static void CL_GlobalServers_f( void );
 static void CL_Ping_f( void );
+static cvar_t *cl_apAutomap;
+
+static void CL_Automap_f( void ) {
+	qboolean enabled = cl_apAutomap->integer ? qfalse : qtrue;
+	Cvar_SetValue( "ap_automap", enabled );
+	Com_Printf( "Automap: %s\n", enabled ? "on" : "off" );
+}
 
 static void CL_InitRef( void );
 static void CL_ShutdownRef( refShutdownCode_t code );
@@ -3993,6 +4000,8 @@ void CL_Init( void ) {
 
 	Cvar_Get ("password", "", CVAR_USERINFO | CVAR_NORESTART);
 	Cvar_Get ("cg_predictItems", "1", CVAR_USERINFO | CVAR_ARCHIVE );
+	cl_apAutomap = Cvar_Get( "ap_automap", "1", CVAR_ARCHIVE );
+	Cvar_SetDescription( cl_apAutomap, "Draw Archipelago pickup bounding boxes and respawn countdowns." );
 
 
 	// cgame might not be initialized before menu is used
@@ -4033,6 +4042,7 @@ void CL_Init( void ) {
 	Cmd_AddCommand ("stopvideo", CL_StopVideo_f );
 	Cmd_AddCommand ("serverinfo", CL_Serverinfo_f );
 	Cmd_AddCommand ("systeminfo", CL_Systeminfo_f );
+	Cmd_AddCommand ("automap", CL_Automap_f );
 
 #ifdef USE_CURL
 	Cmd_AddCommand( "download", CL_Download_f );
@@ -4111,6 +4121,7 @@ void CL_Shutdown( const char *finalmsg, qboolean quit ) {
 	Cmd_RemoveCommand ("stopvideo");
 	Cmd_RemoveCommand ("serverinfo");
 	Cmd_RemoveCommand ("systeminfo");
+	Cmd_RemoveCommand ("automap");
 	Cmd_RemoveCommand ("modelist");
 
 #ifdef USE_CURL

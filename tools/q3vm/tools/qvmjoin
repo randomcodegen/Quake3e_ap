@@ -1,0 +1,142 @@
+#!/usr/bin/env python
+
+####
+# Copyright (C) 2012, 2020 Angelo Cano
+#
+# This file is part of Qvmdis.
+#
+# Qvmdis is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Qvmdis is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Qvmdis.  If not, see <https://www.gnu.org/licenses/>.
+####
+
+# qvmsplit and qvmjoin are just used to test qvm parsing code.
+#
+#  qvmsplit cgame.qvm
+#  qvmjoin test.qvm
+#
+#  cmp cgame.qvm test.qvm
+#  echo $?
+#  0
+
+import AddParentSysPath
+
+from PythonCompat import atoi, xord
+from Qvm import opcodes, OPCODE_PARM_SIZE, QVM_MAGIC_VER1
+import struct, sys
+
+def usage ():
+    sys.stderr.write("%s <output qvm name>\n" % sys.argv[0])
+    sys.exit(1)
+
+def error_exit (msg):
+    sys.stderr.write("ERROR: %s" % msg)
+    sys.exit(1)
+
+def main ():
+    if len(sys.argv) < 2:
+        usage()
+
+    f = open("header-info.txt")
+    lines = f.readlines()
+    f.close()
+
+    # 'magic: 12345678'
+    magic = atoi(lines[0].split()[-1])
+
+    # do the count manually later to test parsing
+    # instructionCount = atoi(lines[1].split()[-1])
+
+    codeSegOffset = atoi(lines[2].split()[-1])
+    codeSegLength = atoi(lines[3].split()[-1])
+    dataSegOffset = atoi(lines[4].split()[-1])
+    dataSegLength = atoi(lines[5].split()[-1])
+    litSegLength = atoi(lines[6].split()[-1])
+    bssSegLength = atoi(lines[7].split()[-1])
+
+    # 'jump table length: 12345678'
+    if magic != QVM_MAGIC_VER1:
+        jumpTableLength = atoi(lines[8].split()[-1])
+    else:
+        jumpTableLength = 0
+
+    f = open("x.code", "rb")
+    codeData = f.read()
+    f.close()
+
+    # this is a test of opcode parsing
+    ins = 0
+    pos = 0
+    while 1:
+        if pos >= len(codeData):
+            break
+        # use slice to get byte string in python 3
+        opcStr = codeData[pos : pos + 1]
+        opc = xord(opcStr)
+        ins = ins + 1
+        pos = pos + 1
+        psize = opcodes[opc][OPCODE_PARM_SIZE]
+        if psize:
+            parmStr = codeData[pos : pos + psize]
+        else:
+            parmStr = None
+        pos = pos + psize
+
+    #output"0x%x  %d instructions\n" % (ins, ins))
+
+    f = open("x.data", "rb")
+    dataData = f.read()
+    f.close()
+
+    f = open("x.lit", "rb")
+    litData = f.read()
+    f.close()
+
+    if magic != QVM_MAGIC_VER1:
+        f = open("x.jump", "rb")
+        jumpTableData = f.read()
+        f.close()
+
+    of = open(sys.argv[1], "wb")
+    of.write(struct.pack("<l", magic))
+    of.write(struct.pack("<l", ins))   # instruction count
+    of.write(struct.pack("<l", codeSegOffset))
+    of.write(struct.pack("<l", codeSegLength))
+    of.write(struct.pack("<l", dataSegOffset))
+    of.write(struct.pack("<l", dataSegLength))
+    of.write(struct.pack("<l", litSegLength))
+    of.write(struct.pack("<l", bssSegLength))
+    if magic != QVM_MAGIC_VER1:
+        of.write(struct.pack("<l", jumpTableLength))
+
+    padding = codeSegOffset - of.tell()
+    if padding < 0:
+        error_exit("invalid codeSegOffset %d (pos %d)\n" % (codeSegOffset, of.tell()))
+    of.write(b'\x00' * padding)
+    of.write(codeData)
+
+    padding = dataSegOffset - of.tell()
+    if padding < 0:
+        error_exit("invalid dataSegOffset %d (pos %d)\n" % (dataSegOffset, of.tell()))
+    of.write(b'\x00' * padding)
+    of.write(dataData)
+
+    # data should already be padded to allow 4 byte boundary for lit segment
+    of.write(litData)
+
+    if magic != QVM_MAGIC_VER1:
+        of.write(jumpTableData)
+
+    of.close()
+
+if __name__ == "__main__":
+    main()

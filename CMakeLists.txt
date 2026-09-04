@@ -1,12 +1,28 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 3.12)
 
+SET(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/vcpkg-overlays" CACHE STRING "Project vcpkg overlay ports")
+
 PROJECT(quake3e)
+
+INCLUDE(CTest)
+IF(BUILD_TESTING)
+	ADD_EXECUTABLE(q3ap_abi_test tests/ap_abi_test.c)
+	ADD_TEST(NAME q3ap_abi COMMAND q3ap_abi_test)
+	ADD_EXECUTABLE(q3ap_state_test tests/ap_state_test.c code/qcommon/ap_slot_state.c code/qcommon/ap_runtime_state.c)
+	ADD_TEST(NAME q3ap_state COMMAND q3ap_state_test)
+	ADD_EXECUTABLE(q3ap_runtime_state_test tests/ap_runtime_state_test.c code/qcommon/ap_runtime_state.c)
+	ADD_TEST(NAME q3ap_runtime_state COMMAND q3ap_runtime_state_test)
+	ADD_EXECUTABLE(q3ap_cpma_test tests/ap_cpma_test.c code/qcommon/ap_cpma_logic.c)
+	ADD_TEST(NAME q3ap_cpma COMMAND q3ap_cpma_test)
+ENDIF()
+
+SET(APCC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../APCc-main" CACHE PATH "Path to APCc sources")
 
 SET(CNAME "quake3e")
 SET(DNAME "quake3e.ded")
 
 SET(RENDERER_PREFIX ${CNAME})
-SET(RENDERER_DEFAULT opengl) # valid options: opengl, vulkan, opengl2
+SET(RENDERER_DEFAULT vulkan) # valid options: opengl, vulkan, opengl2
 
 OPTION(USE_SDL "" ON)
 OPTION(USE_CURL "" ON)
@@ -18,6 +34,10 @@ OPTION(USE_RENDERER_DLOPEN "" ON)
 SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules)
 
 AUX_SOURCE_DIRECTORY(code/qcommon QCOMMON_SRCS)
+IF(MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+	ENABLE_LANGUAGE(ASM_MASM)
+	LIST(APPEND QCOMMON_SRCS code/asm/common_x64.asm)
+ENDIF()
 # exclude platform-dependent QVM bytecode compilers
 list(FILTER QCOMMON_SRCS EXCLUDE REGEX ".*vm_[alpx].*.c")
 # add platform-dependent QVM bytecode compilers
@@ -110,6 +130,9 @@ IF(USE_RENDERER_DLOPEN)
 		code/qcommon/puff.c
 		code/qcommon/q_math.c
 	)
+	IF(MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+		LIST(APPEND AUX_SRCS code/asm/common_x64.asm)
+	ENDIF()
 	TARGET_COMPILE_DEFINITIONS(client PRIVATE USE_RENDERER_DLOPEN RENDERER_PREFIX="${RENDERER_PREFIX}" RENDERER_DEFAULT=${RENDERER_DEFAULT})
 
 	ADD_LIBRARY(${RENDERER_PREFIX}_opengl${RENDEXT} SHARED ${RENDERER_GL_SRCS} ${RENDERER_COMMON_SRCS} ${AUX_SRCS})
@@ -208,6 +231,31 @@ ENDIF()
 
 ADD_EXECUTABLE(${CNAME}${BINEXT} ${EXE_TYPE} ${Q3_SRCS})
 TARGET_LINK_LIBRARIES(${CNAME}${BINEXT} qcommon botlib client q3ui)
+IF(USE_RENDERER_DLOPEN AND USE_VULKAN)
+	ADD_DEPENDENCIES(${CNAME}${BINEXT} ${RENDERER_PREFIX}_vulkan${RENDEXT})
+ENDIF()
+IF(MSVC)
+	TARGET_LINK_OPTIONS(${CNAME}${BINEXT} PRIVATE /Brepro)
+ENDIF()
+IF(EXISTS "${APCC_ROOT}/APCc.c")
+	FIND_PACKAGE(PkgConfig REQUIRED)
+	PKG_CHECK_MODULES(APCC_GLIB REQUIRED IMPORTED_TARGET glib-2.0)
+	FIND_PACKAGE(jansson CONFIG REQUIRED)
+	FIND_PACKAGE(libwebsockets CONFIG REQUIRED)
+	TARGET_SOURCES(${CNAME}${BINEXT} PRIVATE "${APCC_ROOT}/APCc.c")
+	TARGET_INCLUDE_DIRECTORIES(qcommon PRIVATE "${APCC_ROOT}")
+	TARGET_INCLUDE_DIRECTORIES(${CNAME}${BINEXT} PRIVATE "${APCC_ROOT}")
+	TARGET_LINK_LIBRARIES(qcommon PRIVATE PkgConfig::APCC_GLIB jansson::jansson websockets_shared)
+	TARGET_LINK_LIBRARIES(${CNAME}${BINEXT} PkgConfig::APCC_GLIB jansson::jansson websockets_shared)
+	IF(BUILD_TESTING)
+		ADD_EXECUTABLE(q3ap_message_test tests/ap_message_test.c)
+		TARGET_INCLUDE_DIRECTORIES(q3ap_message_test PRIVATE "${APCC_ROOT}")
+		TARGET_LINK_LIBRARIES(q3ap_message_test PRIVATE PkgConfig::APCC_GLIB jansson::jansson websockets_shared)
+		ADD_TEST(NAME q3ap_messages COMMAND q3ap_message_test)
+	ENDIF()
+ELSE()
+	MESSAGE(FATAL_ERROR "APCc.c was not found at APCC_ROOT=${APCC_ROOT}")
+ENDIF()
 #TARGET_LINK_OPTIONS(${CNAME} PRIVATE -fno-pie) # v3.13+
 
 IF(NOT USE_RENDERER_DLOPEN)
@@ -225,8 +273,8 @@ TARGET_LINK_LIBRARIES(${DNAME}${BINEXT} qcommon_ded botlib)
 #TARGET_LINK_OPTIONS(${DNAME} PRIVATE -fno-pie) # v3.13+
 
 IF(WIN32)
-	TARGET_LINK_LIBRARIES(${CNAME}${BINEXT} winmm comctl32 ws2_32)
-	TARGET_LINK_LIBRARIES(${DNAME}${BINEXT} winmm comctl32 ws2_32)
+	TARGET_LINK_LIBRARIES(${CNAME}${BINEXT} winmm comctl32 ws2_32 iphlpapi)
+	TARGET_LINK_LIBRARIES(${DNAME}${BINEXT} winmm comctl32 ws2_32 iphlpapi)
 ELSE()
 	TARGET_LINK_LIBRARIES(${CNAME}${BINEXT} m ${CMAKE_DL_LIBS})
 	TARGET_LINK_LIBRARIES(${DNAME}${BINEXT} m ${CMAKE_DL_LIBS})

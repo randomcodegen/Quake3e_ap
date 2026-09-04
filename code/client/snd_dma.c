@@ -1141,6 +1141,13 @@ static void S_Base_Update( int msec ) {
 				total++;
 			}
 		}
+		for ( i = 0; i < MAX_GENTITIES; ++i ) {
+			if ( loopSounds[i].active && loopSounds[i].sfx ) {
+				Com_Printf( "loop ent=%d origin=%.0f %.0f %.0f %s\n", i,
+					loopSounds[i].origin[0], loopSounds[i].origin[1], loopSounds[i].origin[2],
+					loopSounds[i].sfx->soundName );
+			}
+		}
 
 		Com_Printf ("----(%i)---- painted: %i\n", total, s_paintedtime);
 	}

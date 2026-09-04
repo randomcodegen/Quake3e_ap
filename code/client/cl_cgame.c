@@ -635,7 +635,9 @@ static intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		re.AddAdditiveLightToScene( VMA(1), VMF(2), VMF(3), VMF(4), VMF(5) );
 		return 0;
 	case CG_R_RENDERSCENE:
+		CLAP_CPMA_AddMarkers();
 		re.RenderScene( VMA(1) );
+		CLAP_DrawRespawnCountdowns( VMA(1) );
 		return 0;
 	case CG_R_SETCOLOR:
 		re.SetColor( VMA(1) );
@@ -850,6 +852,7 @@ void CL_InitCGame( void ) {
 	Cbuf_NestedReset();
 
 	t1 = Sys_Milliseconds();
+	CLAP_CPMA_Reset();
 
 	// put away the console
 	Con_Close();

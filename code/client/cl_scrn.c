@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // cl_scrn.c -- master for refresh, status bar, console, chat, notify, etc
 
 #include "client.h"
+#include "../qcommon/ap_client.h"
 
 static qboolean	scr_initialized;		// ready to draw
 
@@ -384,6 +385,26 @@ static void SCR_DrawDemoRecording( void ) {
 	}
 }
 
+static void SCR_DrawAPChecks( void ) {
+	static uint32_t generation = ~0u;
+	static apUIState_t state;
+	char text[32];
+	uint32_t currentGeneration;
+	int map;
+
+	currentGeneration = (uint32_t)APCL_GameQuery( Q3AP_GAME_STATE_GENERATION, 0 );
+	if ( currentGeneration != generation ) {
+		if ( !APCL_CopyUIState( &state, sizeof( state ) ) ) return;
+		generation = currentGeneration;
+	}
+	map = APCL_GameQuery( Q3AP_GAME_ACTIVE_MAP_INDEX, 0 );
+	if ( state.connection_status != Q3AP_CONNECTION_AUTHENTICATED || !state.slot_valid ||
+		 map < 0 || map >= Q3AP_UI_MAX_MAPS || !state.map_checks_total[map] ) return;
+
+	Com_sprintf( text, sizeof( text ), "AP: %u/%u", state.map_checks_checked[map], state.map_checks_total[map] );
+	SCR_DrawStringExt( 8, 8, 8, text, g_color_table[ColorIndex(COLOR_WHITE)], qtrue, qtrue );
+}
+
 
 #ifdef USE_VOIP
 /*
@@ -577,6 +598,7 @@ static void SCR_DrawScreenField( stereoFrame_t stereoFrame ) {
 		case CA_ACTIVE:
 			// always supply STEREO_CENTER as vieworg offset is now done by the engine.
 			CL_CGameRendering( stereoFrame );
+			SCR_DrawAPChecks();
 			SCR_DrawDemoRecording();
 #ifdef USE_VOIP
 			SCR_DrawVoipMeter();

@@ -5,3 +5,17 @@ output/
 *.user
 cmake-*
 .idea
+/.vcpkg_installed/
+/apgame/build*/
+/build-*/
+/dist/
+/smoke-ap/
+/apgame/dist/
+/vcpkg_installed/
+/run-ap/
+/test-seed/
+/.tmp-cpma-docs/
+/tools/q3vm/cpma-analysis/
+__pycache__/
+*.pyc
+/docs/local/

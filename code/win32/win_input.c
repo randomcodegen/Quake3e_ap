@@ -35,6 +35,7 @@ typedef struct {
 } WinMouseVars_t;
 
 static WinMouseVars_t s_wmv;
+static qboolean mouseClickToFocus;
 
 static POINT window_center;
 static POINT client_center;
@@ -126,6 +127,14 @@ IN_MouseActive
 qboolean IN_MouseActive( void )
 {
 	return ( s_wmv.mouseActive && in_nograb->integer == 0 );
+}
+
+qboolean IN_MouseFocusClick( void )
+{
+	if ( !mouseClickToFocus )
+		return qfalse;
+	mouseClickToFocus = qfalse;
+	return qtrue;
 }
 
 
@@ -746,6 +755,9 @@ Called when the window gains focus or changes in some way
 */
 static void IN_ActivateMouse( void )
 {
+	POINT cursor;
+	RECT client;
+
 	if ( !s_wmv.mouseInitialized )
 		return;
 
@@ -756,6 +768,14 @@ static void IN_ActivateMouse( void )
 
 	if ( s_wmv.mouseActive )
 		return;
+
+	if ( !glw_state.cdsFullscreen && ( Key_GetCatcher() & KEYCATCH_UI ) &&
+		GetCursorPos( &cursor ) && ScreenToClient( g_wv.hWnd, &cursor ) &&
+		GetClientRect( g_wv.hWnd, &client ) && client.right > 0 && client.bottom > 0 ) {
+		CL_MouseEvent( -SCREEN_WIDTH, -SCREEN_HEIGHT );
+		CL_MouseEvent( cursor.x * SCREEN_WIDTH / client.right,
+			cursor.y * SCREEN_HEIGHT / client.bottom );
+	}
 
 	s_wmv.mouseActive = qtrue;
 
@@ -1161,6 +1181,7 @@ void IN_Init( void ) {
 	IN_GetHotkey( in_minimize, &HotKey );
 
 	IN_Startup();
+	mouseClickToFocus = glw_state.cdsFullscreen ? qfalse : qtrue;
 }
 
 
@@ -1176,6 +1197,7 @@ between a deactivate and an activate.
 void IN_Activate( qboolean active ) {
 
 	if ( !active ) {
+		mouseClickToFocus = glw_state.cdsFullscreen ? qfalse : qtrue;
 		IN_DeactivateMouse();
 	}
 }
@@ -1209,7 +1231,7 @@ void IN_Frame( void ) {
 		}
 	}
 
-	if ( !gw_active || gw_minimized || in_nograb->integer ) {
+	if ( !gw_active || gw_minimized || mouseClickToFocus || in_nograb->integer ) {
 		IN_DeactivateMouse();
 		return;
 	}

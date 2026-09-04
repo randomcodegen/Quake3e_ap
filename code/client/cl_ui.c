@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include "client.h"
+#include "../qcommon/ap_client.h"
 
 #include "../botlib/botlib.h"
 
@@ -693,10 +694,12 @@ static void CLUI_SetCDKey( char *buf ) {
 	if ( UI_usesUniqueCDKey() && gamedir[0] != '\0' ) {
 		Com_Memcpy( &cl_cdkey[16], buf, 16 );
 		cl_cdkey[32] = '\0';
+		Com_WriteCDKey( gamedir, &cl_cdkey[16] );
 		// set the flag so the flag will be written at the next opportunity
 		cvar_modifiedFlags |= CVAR_ARCHIVE;
 	} else {
 		Com_Memcpy( cl_cdkey, buf, 16 );
+		Com_WriteCDKey( FS_GetBaseGameDir(), cl_cdkey );
 		// set the flag so the flag will be written at the next opportunity
 		cvar_modifiedFlags |= CVAR_ARCHIVE;
 	}
@@ -1182,6 +1185,20 @@ static intptr_t CL_UISystemCalls( intptr_t *args ) {
 		VM_CHECKBOUNDS( uivm, args[1], args[2] );
 		return UI_GetValue( VMA(1), args[2], VMA(3) );
 
+	case UI_AP_GET_STATE:
+		if ( args[2] != sizeof( apUIState_t ) ) return qfalse;
+		VM_CHECKBOUNDS( uivm, args[1], args[2] );
+		return APCL_CopyUIState( VMA(1), args[2] );
+	case UI_AP_CONNECT:
+		if ( args[2] != sizeof( apConnectRequest_t ) ) return qfalse;
+		VM_CHECKBOUNDS( uivm, args[1], args[2] );
+		return APCL_UIConnect( VMA(1), args[2] );
+	case UI_AP_DISCONNECT:
+		APCL_UIDisconnect();
+		return qtrue;
+	case UI_AP_START_STAGE:
+		return APCL_UIStartStage( args[1] );
+
 	default:
 		Com_Error( ERR_DROP, "Bad UI system trap: %ld", (long int) args[0] );
 
@@ -1231,7 +1248,6 @@ void CL_ShutdownUI( void ) {
 	uivm = NULL;
 	FS_VM_CloseFiles( H_Q3UI );
 }
-
 
 /*
 ====================

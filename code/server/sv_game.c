@@ -22,6 +22,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // sv_game.c -- interface to the game dll
 
 #include "server.h"
+#include "sv_ap_cpma.h"
+#include "../qcommon/ap_client.h"
 
 #include "../botlib/botlib.h"
 
@@ -452,14 +454,18 @@ static intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		SV_GameSendServerCommand( args[1], VMA(2) );
 		return 0;
 	case G_LINKENTITY:
-		SV_LinkEntity( VMA(1) );
+		if ( SVAP_CPMA_LinkEntity( VMA(1) ) ) SV_LinkEntity( VMA(1) );
 		return 0;
 	case G_UNLINKENTITY:
+		SVAP_CPMA_UnlinkEntity( VMA(1) );
 		SV_UnlinkEntity( VMA(1) );
 		return 0;
 	case G_ENTITIES_IN_BOX:
 		VM_CHECKBOUNDS3( gvm, args[3], args[4], sizeof( int ) );
-		return SV_AreaEntities( VMA(1), VMA(2), VMA(3), args[4] );
+		{
+			int count = SV_AreaEntities( VMA(1), VMA(2), VMA(3), args[4] );
+			return SVAP_CPMA_FilterAreaEntities( VMA(1), VMA(2), VMA(3), count );
+		}
 	case G_ENTITY_CONTACT:
 		return SV_EntityContact( VMA(1), VMA(2), VMA(3), /*int capsule*/ qfalse );
 	case G_ENTITY_CONTACTCAPSULE:
@@ -526,6 +532,7 @@ static intptr_t SV_GameSystemCalls( intptr_t *args ) {
 				if ( size >= 0 ) {
 					Q_strncpy( dst, s, size );
 					dst[size] = '\0';
+					SVAP_CPMA_EntityToken( dst );
 				}
 			}
 			if ( !sv.entityParsePoint && s[0] == '\0' ) {
@@ -986,6 +993,15 @@ static intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		VM_CHECKBOUNDS( gvm, args[1], args[2] );
 		return SV_GetValue( VMA(1), args[2], VMA(3) );
 
+	case G_AP_QUERY:
+		return APCL_GameQuery( args[1], args[2] );
+	case G_AP_GET_STRING:
+		if ( args[3] <= 0 ) return qfalse;
+		VM_CHECKBOUNDS( gvm, args[2], args[3] );
+		return APCL_GameString( args[1], VMA(2), args[3] );
+	case G_AP_SEND_LOCATION:
+		return APCL_SendLocation( args[1] );
+
 	default:
 		Com_Error( ERR_DROP, "Bad game system trap: %ld", (long int) args[0] );
 	}
@@ -1028,6 +1044,7 @@ void SV_ShutdownGameProgs( void ) {
 	if ( !gvm ) {
 		return;
 	}
+	SVAP_CPMA_EndMap();
 	VM_Call( gvm, 1, GAME_SHUTDOWN, qfalse );
 	VM_Free( gvm );
 	gvm = NULL;
@@ -1047,6 +1064,7 @@ static void SV_InitGameVM( qboolean restart ) {
 
 	// start the entity parsing at the beginning
 	sv.entityParsePoint = CM_EntityString();
+	SVAP_CPMA_BeginMap();
 
 	// clear all gentity pointers that might still be set from
 	// a previous level
@@ -1059,6 +1077,12 @@ static void SV_InitGameVM( qboolean restart ) {
 	// use the current msec count for a random seed
 	// init for this gamestate
 	VM_Call( gvm, 3, GAME_INIT, sv.time, Com_Milliseconds(), restart );
+}
+
+void SV_GameRunFrame( int time ) {
+	SVAP_CPMA_BeforeFrame();
+	VM_Call( gvm, 1, GAME_RUN_FRAME, time );
+	SVAP_CPMA_AfterFrame();
 }
 
 

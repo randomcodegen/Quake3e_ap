@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "q_shared.h"
 #include "qcommon.h"
+#include "ap_client.h"
 #include <setjmp.h>
 #ifndef _WIN32
 #include <netinet/in.h>
@@ -3166,12 +3167,13 @@ Com_ReadCDKey
 */
 void Com_ReadCDKey( const char *filename ) {
 	fileHandle_t	f;
+	long			length;
 	char			buffer[33];
 	char			fbuffer[MAX_OSPATH];
 
 	Com_sprintf( fbuffer, sizeof( fbuffer ), "%s/q3key", filename );
 
-	FS_SV_FOpenFileRead( fbuffer, &f );
+	length = FS_SV_FOpenFileRead( fbuffer, &f );
 	if ( f == FS_INVALID_HANDLE ) {
 		Q_strncpyz( cl_cdkey, "                ", 17 );
 		return;
@@ -3184,6 +3186,9 @@ void Com_ReadCDKey( const char *filename ) {
 
 	if ( Com_CDKeyValidate(buffer, NULL) ) {
 		Q_strncpyz( cl_cdkey, buffer, 17 );
+		#ifndef DEDICATED
+		if ( length != 16 ) Com_WriteCDKey( filename, cl_cdkey );
+		#endif
 	} else {
 		Q_strncpyz( cl_cdkey, "                ", 17 );
 	}
@@ -3227,7 +3232,7 @@ void Com_AppendCDKey( const char *filename ) {
 Com_WriteCDKey
 =================
 */
-static void Com_WriteCDKey( const char *filename, const char *ikey ) {
+void Com_WriteCDKey( const char *filename, const char *ikey ) {
 	fileHandle_t	f;
 	char			fbuffer[MAX_OSPATH];
 	char			key[17];
@@ -3994,6 +3999,7 @@ void Com_Init( char *commandLine ) {
 	Cmd_AddCommand( "writeconfig", Com_WriteConfig_f );
 	Cmd_SetCommandCompletionFunc( "writeconfig", Cmd_CompleteWriteCfgName );
 	Cmd_AddCommand( "game_restart", Com_GameRestart_f );
+	APCL_Init();
 
 	s = va( "%s %s %s", Q3_VERSION, PLATFORM_STRING, __DATE__ );
 	com_version = Cvar_Get( "version", s, CVAR_PROTECTED | CVAR_ROM | CVAR_SERVERINFO );
@@ -4386,6 +4392,7 @@ void Com_Frame( qboolean noDelay ) {
 	realMsec = com_frameTime - lastTime;
 
 	Cbuf_Execute();
+	APCL_Frame();
 
 	// mess with msec if needed
 	msec = Com_ModifyMsec( realMsec );
@@ -4513,6 +4520,8 @@ Com_Shutdown
 =================
 */
 static void Com_Shutdown( void ) {
+	APCL_Shutdown();
+
 	if ( logfile != FS_INVALID_HANDLE ) {
 		FS_FCloseFile( logfile );
 		logfile = FS_INVALID_HANDLE;

@@ -1,0 +1,84 @@
+#!/usr/bin/env python
+
+####
+# Copyright (C) 2012, 2020 Angelo Cano
+#
+# This file is part of Qvmdis.
+#
+# Qvmdis is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Qvmdis is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Qvmdis.  If not, see <https://www.gnu.org/licenses/>.
+####
+
+# qvmsplit and qvmjoin are just used to test qvm parsing code.
+#
+#  qvmsplit cgame.qvm
+#  qvmjoin test.qvm
+#
+#  cmp cgame.qvm test.qvm
+#  echo $?
+#  0
+
+import AddParentSysPath
+
+from Qvm import Qvm, QVM_MAGIC_VER1
+import sys
+
+def usage ():
+    sys.stderr.write("%s <qvm file>\n" % sys.argv[0])
+    sys.exit (1)
+
+def main ():
+    if len(sys.argv) < 2:
+        usage ()
+
+    qvm = Qvm(sys.argv[1])
+    qvm.print_header()
+
+    f = open("header-info.txt", "w")
+    f.write("magic: %d\n" % qvm.magic)
+    f.write("instruction count: %d\n" % qvm.instructionCount)
+    f.write("code segment offset: %d\n" % qvm.codeSegOffset)
+    f.write("code segment length: %d\n" % qvm.codeSegLength)
+    f.write("data segment offset: %d\n" % qvm.dataSegOffset)
+    f.write("data segment length: %d\n" % qvm.dataSegLength)
+    f.write("lit segment length: %d\n" % qvm.litSegLength)
+    f.write("bss segment length: %d\n" % qvm.bssSegLength)
+    if qvm.magic != QVM_MAGIC_VER1:
+        f.write("jump table length: %d\n" % qvm.jumpTableLength)
+    f.close()
+
+    fcodew = open("x.code", "wb")
+    # unpadded code
+    # using get_code() to test opcode parsing
+    fcodew.write(qvm.get_code())
+    fcodew.close()
+
+    fcode = open("xpadded.code", "wb")
+    fcode.write(qvm.codeData[:qvm.codeSegLength])
+    fcode.close()
+
+    fdata = open("x.data", "wb")
+    fdata.write(qvm.dataData[:qvm.dataSegLength])
+    fdata.close()
+
+    flit = open("x.lit", "wb")
+    flit.write(qvm.litData[:qvm.litSegLength])
+    flit.close()
+
+    if qvm.magic != QVM_MAGIC_VER1:
+        fjump = open("x.jump", "wb")
+        fjump.write(qvm.jumpTableData[:qvm.jumpTableLength])
+        fjump.close()
+
+if __name__ == "__main__":
+    main()

@@ -101,6 +101,7 @@ const char *WtoA( const LPWSTR s );
 #endif
 
 qboolean IN_MouseActive( void );
+qboolean IN_MouseFocusClick( void );
 void	IN_Win32MouseEvent( int mstate );
 void	IN_RawMouseEvent( LPARAM lParam );
 

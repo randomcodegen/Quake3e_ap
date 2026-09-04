@@ -1018,6 +1018,7 @@ void		Com_StartupVariable( const char *match );
 // only a set with the exact name.  Only used during startup.
 
 void		Com_WriteConfiguration( void );
+void		Com_WriteCDKey( const char *filename, const char *ikey );
 int			Com_HexStrToInt( const char *str );
 qboolean	Com_GetHashColor( const char *str, byte *color );
 

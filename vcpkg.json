@@ -1,0 +1,11 @@
+{
+  "name": "quake3e-archipelago",
+  "version-string": "0.1.0",
+  "builtin-baseline": "dd1b1040bd42eda01abe3f68822ba6186b3b6f18",
+  "dependencies": [
+    "glib",
+    "jansson",
+    "libwebsockets",
+    "pkgconf"
+  ]
+}

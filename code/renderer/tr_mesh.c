@@ -91,6 +91,10 @@ static int R_CullModel( md3Header_t *header, const trRefEntity_t *ent, vec3_t bo
 		bounds[1][i] = oldFrame->bounds[1][i] > newFrame->bounds[1][i] ? oldFrame->bounds[1][i] : newFrame->bounds[1][i];
 	}
 
+	if ( !Q_stricmpn( tr.currentModel->name, "models/powerups/ap/", sizeof( "models/powerups/ap/" ) - 1 ) ) {
+		return CULL_CLIP;
+	}
+
 	// cull bounding sphere ONLY if this is not an upscaled entity
 	if ( !ent->e.nonNormalizedAxes )
 	{
@@ -420,7 +424,10 @@ void R_AddMD3Surfaces( trRefEntity_t *ent ) {
 		}
 
 		// don't add third_person objects if not viewing through a portal
-		if ( !personalModel ) {
+		if ( !personalModel &&
+			( strcmp( surface->name, "ap_box" ) ||
+			Q_stricmpn( tr.currentModel->name, "models/powerups/ap/", sizeof( "models/powerups/ap/" ) - 1 ) ||
+			ri.Cvar_VariableIntegerValue( "ap_automap" ) ) ) {
 			R_AddDrawSurf( (void *)surface, shader, fogNum, 0 );
 		}
 

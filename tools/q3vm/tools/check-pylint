@@ -1,0 +1,66 @@
+#!/usr/bin/env python
+
+####
+# Copyright (C) 2012, 2020 Angelo Cano
+#
+# This file is part of Qvmdis.
+#
+# Qvmdis is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Qvmdis is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Qvmdis.  If not, see <https://www.gnu.org/licenses/>.
+####
+
+import AddParentSysPath
+
+from pylint import epylint
+import glob, os.path, sys
+
+def isPythonFile (fname):
+    if os.path.isdir(fname):
+        return False
+
+    if fname.lower().endswith(".py"):
+        return True
+
+    f = open(fname, "rb")
+    header = f.readline().strip()
+    f.close()
+
+    # generally could also be "#!/usr/bin/python", "#!/usr/local/bin/python3",
+    # etc...
+    if header.startswith(b"#!/usr/bin/env python"):
+        return True
+
+    return False
+
+# use glob() so it includes "../" in the name
+allFiles = sorted(glob.glob("../*"))
+allFiles.extend(sorted(glob.glob("*")))
+allFiles.extend(sorted(glob.glob("q3stubs/*")))
+
+pythonFiles = []
+for f in allFiles:
+    if isPythonFile(f):
+        pythonFiles.append(f)
+
+for f in pythonFiles:
+    print("pylint check of %s" % f)
+
+    #epylint.lint(options=["--errors-only"], filename=f)
+
+    (pylint_stdout, pylint_stderr) = epylint.py_run("\"%s\" --errors-only" % f, return_std=True)
+    vs = pylint_stdout.getvalue()
+    if len(vs) > 0:
+        sys.stdout.write(vs)
+        sys.stdout.write("\n")
+
+print("done.")

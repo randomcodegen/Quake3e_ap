@@ -1,0 +1,107 @@
+#!/usr/bin/env python
+
+####
+# Copyright (C) 2012, 2020 Angelo Cano
+#
+# This file is part of Qvmdis.
+#
+# Qvmdis is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Qvmdis is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Qvmdis.  If not, see <https://www.gnu.org/licenses/>.
+####
+
+import os.path, sys, traceback, Qvm
+
+def usage ():
+    scriptName = os.path.basename(sys.argv[0])
+    sys.stderr.write("Usage: %s [--func-hash, -q] <qvm file> [cgame|game|ui]\n" % scriptName)
+    sys.stderr.write("  optionally specify cgame, game, or ui qvm to match syscalls and function hashes\n")
+    sys.stderr.write("  --func-hash  :  only print function hash values\n")
+    sys.stderr.write("  -q           :  suppress warnings\n")
+    sys.stderr.write("  -dr          :  replace code disassembly with decompiled output\n")
+    sys.stderr.write("\n")
+    sys.stderr.write("  ex: %s cgame.qvm cgame > cgame.dis\n" % scriptName)
+    sys.exit(1)
+
+def output (msg):
+    sys.stdout.write(msg)
+
+def main ():
+    onlyPrintFunctionHashes = False
+    qvmFile = None
+    qvmType = None
+    parsingOptions = True
+
+    for arg in sys.argv[1:]:
+        if arg == "--func-hash"  and  parsingOptions:
+            onlyPrintFunctionHashes = True
+        elif arg == "-q"  and  parsingOptions:
+            Qvm.SuppressWarnings = True
+        elif arg == "-dr"  and  parsingOptions:
+            Qvm.ReplaceDecompiled = True
+        elif arg == "--"  and  parsingOptions:
+            parsingOptions = False
+        elif qvmFile == None:
+            qvmFile = arg
+        elif qvmType == None:
+            qvmType = arg
+
+    if qvmFile == None:
+        usage()
+
+    if qvmType != None:
+        if not qvmType in ("cgame", "game", "ui"):
+            output("invalid qvm type '%s'\n" % qvmType)
+            usage()
+
+    q = Qvm.Qvm(qvmFile, qvmType)
+
+    if onlyPrintFunctionHashes:
+        q.print_function_hashes()
+        return
+
+    output(";; header\n")
+    q.print_header()
+    output("\n")
+
+    output(";; function hashes\n")
+    q.print_function_hashes()
+    output("\n")
+
+    output(";; code segment\n")
+    q.print_code_disassembly()
+    output("\n")
+
+    output(";; data segment\n")
+    q.print_data_disassembly()
+    output("\n")
+
+    output(";; lit segment\n")
+    q.print_lit_disassembly()
+
+    if q.magic != Qvm.QVM_MAGIC_VER1:
+        output("\n;; jump table\n")
+        q.print_jump_table()
+
+if __name__ == "__main__":
+    try:
+        main()
+    except SystemExit as se:
+        # don't print traceback for exit()
+        raise se
+    except Exception as ex:
+        # send to both stdout and stderr since output is usually redirected to file
+        traceback.print_exc(file=sys.stdout)
+        sys.stderr.write("\n")
+        traceback.print_exc(file=sys.stderr)
+        # feed back up to exit() with correct exit value
+        raise ex

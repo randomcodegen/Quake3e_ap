@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+
+####
+# Copyright (C) 2012, 2020 Angelo Cano
+#
+# This file is part of Qvmdis.
+#
+# Qvmdis is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Qvmdis is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Qvmdis.  If not, see <https://www.gnu.org/licenses/>.
+####
+
+import AddParentSysPath
+
+from Qvm import opcodes, OPCODE_NAME, OPCODE_STACK_CHANGE, OPCODE_DESC, OPCODE_C_CODE
+import sys
+
+def usage ():
+    sys.stderr.write("%s <opcode>\n" % sys.argv[0])
+    sys.stderr.write("\nSpecific opcodes (Q3VM bytecode): (TOS = Top Of Stack; NIS = Next In Stack (next value after TOS)) (Hack syntax: $PARM = code parameter)\n")
+    sys.exit(1)
+
+def main ():
+    if len(sys.argv) < 2:
+        usage()
+
+    name = sys.argv[1]
+
+    for op in opcodes:
+        if op[OPCODE_NAME] == name:
+            print("%s: stack change %d" % (name, op[OPCODE_STACK_CHANGE]))
+            print("")
+            print(op[OPCODE_DESC])
+
+            if len(op[OPCODE_C_CODE]) > 0:
+                print("")
+                print("// r2 = $PARM, r1 = NIS, r0 = TOS")
+                print("")
+                print(op[OPCODE_C_CODE])
+                print("")
+
+            sys.exit(0)
+
+    sys.stderr.write("unknown opcode: %s\n" % name)
+    sys.exit(1)
+
+if __name__ == "__main__":
+    main()

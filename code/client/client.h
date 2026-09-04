@@ -146,6 +146,10 @@ typedef struct {
 
 extern	clientActive_t		cl;
 
+void CLAP_CPMA_Reset( void );
+void CLAP_CPMA_AddMarkers( void );
+void CLAP_DrawRespawnCountdowns( const refdef_t *refdef );
+
 #define EM_GAMESTATE 1
 #define EM_SNAPSHOT  2
 #define EM_COMMAND   4

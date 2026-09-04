@@ -881,6 +881,10 @@ LRESULT WINAPI MainWndProc( HWND hWnd, UINT uMsg, WPARAM  wParam, LPARAM lParam 
 	case WM_MBUTTONDOWN:
 	case WM_MBUTTONUP:
 	case WM_MOUSEMOVE:
+		if ( ( uMsg == WM_LBUTTONDOWN || uMsg == WM_RBUTTONDOWN || uMsg == WM_MBUTTONDOWN ) &&
+			IN_MouseFocusClick() ) {
+			return 0;
+		}
 		if ( IN_MouseActive() ) {
 			int mstate = (wParam & (MK_LBUTTON|MK_RBUTTON)) + ((wParam & (MK_MBUTTON|MK_XBUTTON1|MK_XBUTTON2)) >> 2);
 			IN_Win32MouseEvent( mstate );

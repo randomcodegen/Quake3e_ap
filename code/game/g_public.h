@@ -398,7 +398,11 @@ typedef enum {
 
 	// engine extensions
 	G_CVAR_SETDESCRIPTION,
-	G_TRAP_GETVALUE = COM_TRAP_GETVALUE
+	G_TRAP_GETVALUE = COM_TRAP_GETVALUE,
+
+	G_AP_QUERY = 710,
+	G_AP_GET_STRING,
+	G_AP_SEND_LOCATION
 
 } gameImport_t;
 
@@ -440,4 +444,3 @@ typedef enum {
 
 	GAME_EXPORT_LAST
 } gameExport_t;
-
