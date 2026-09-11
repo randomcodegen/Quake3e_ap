@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $moduleRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $engineRoot = (Resolve-Path (Join-Path $moduleRoot '..')).Path
-$apccRoot = (Resolve-Path (Join-Path $engineRoot '..\APCc-main')).Path
+$apccRoot = (Resolve-Path (Join-Path $engineRoot 'APCc')).Path
 $toolchain = Join-Path $VcpkgRoot 'scripts\buildsystems\vcpkg.cmake'
 if (-not (Test-Path -LiteralPath $toolchain -PathType Leaf)) { throw "vcpkg toolchain not found: $toolchain" }
 if (-not (Get-Command $CMake -ErrorAction SilentlyContinue)) { throw "CMake executable not found: $CMake" }

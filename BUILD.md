@@ -1,5 +1,17 @@
 ## Build Instructions
 
+### Archipelago dependency
+
+APCc is pinned as the `APCc/` submodule. Initialize it before building:
+
+```sh
+git submodule update --init --recursive
+```
+
+The CMake build and `apgame/tools/build.ps1` use this pinned copy by default.
+For an existing CMake build configured with an external `APCC_ROOT`, add
+`-U APCC_ROOT` when reconfiguring to return to the pinned default.
+
 ### windows/msvc
 
 Install Visual Studio Community Edition 2017 or later and compile `quake3e` project from solution

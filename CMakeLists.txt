@@ -16,7 +16,7 @@ IF(BUILD_TESTING)
 	ADD_TEST(NAME q3ap_cpma COMMAND q3ap_cpma_test)
 ENDIF()
 
-SET(APCC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../APCc-main" CACHE PATH "Path to APCc sources")
+SET(APCC_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/APCc" CACHE PATH "Path to APCc sources")
 
 SET(CNAME "quake3e")
 SET(DNAME "quake3e.ded")
@@ -254,7 +254,7 @@ IF(EXISTS "${APCC_ROOT}/APCc.c")
 		ADD_TEST(NAME q3ap_messages COMMAND q3ap_message_test)
 	ENDIF()
 ELSE()
-	MESSAGE(FATAL_ERROR "APCc.c was not found at APCC_ROOT=${APCC_ROOT}")
+	MESSAGE(FATAL_ERROR "APCc.c was not found at APCC_ROOT=${APCC_ROOT}. Run git submodule update --init --recursive, or set APCC_ROOT explicitly.")
 ENDIF()
 #TARGET_LINK_OPTIONS(${CNAME} PRIVATE -fno-pie) # v3.13+
 
