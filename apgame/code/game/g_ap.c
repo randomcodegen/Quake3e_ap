@@ -82,7 +82,8 @@ static void GAP_RevealNewPickups( uint32_t added ) {
 
 static void GAP_ApplyFiller( void ) {
 	int client, index;
-	if ( !trap_AP_Query( Q3AP_GAME_AUTHENTICATED, 0 ) || level.intermissiontime ) return;
+	if ( !trap_AP_Query( Q3AP_GAME_AUTHENTICATED, 0 ) || level.warmupTime ||
+		level.intermissiontime || level.intermissionQueued ) return;
 	for ( client = 0; client < level.maxclients; ++client ) {
 		gentity_t *ent = &g_entities[client];
 		playerState_t *ps;
@@ -91,19 +92,20 @@ static void GAP_ApplyFiller( void ) {
 			( ent->r.svFlags & SVF_BOT ) || ent->health <= 0 ||
 			ent->client->ps.pm_type != PM_NORMAL ) continue;
 		ps = &ent->client->ps;
-		limit = 2 * ps->stats[STAT_MAX_HEALTH];
+		limit = ps->stats[STAT_MAX_HEALTH];
 		ent->health = Q3AP_RefillStat( ent->health, limit,
-			trap_AP_Query( Q3AP_GAME_TAKE_FILLER, Q3AP_HEALTH_FILLER_ITEM_ID ) );
+			trap_AP_TakeFiller( Q3AP_HEALTH_FILLER_ITEM_ID, limit - ent->health ) );
 		ps->stats[STAT_HEALTH] = ent->health;
+		limit *= 2;
 		ps->stats[STAT_ARMOR] = Q3AP_RefillStat( ps->stats[STAT_ARMOR], limit,
-			trap_AP_Query( Q3AP_GAME_TAKE_FILLER, Q3AP_ARMOR_FILLER_ITEM_ID ) );
+			trap_AP_TakeFiller( Q3AP_ARMOR_FILLER_ITEM_ID, limit - ps->stats[STAT_ARMOR] ) );
 		for ( index = 0; index < Q3AP_AMMO_FILLER_COUNT; ++index ) {
 			const q3ap_ammo_filler_t *ammo = &q3ap_ammo_fillers[index];
 			int weapon = GAP_WeaponForFamily( ammo->family_index );
-			if ( weapon == WP_NONE || ps->ammo[weapon] < 0 ||
+			if ( weapon == WP_NONE || ps->ammo[weapon] < 0 || !( ps->stats[STAT_WEAPONS] & ( 1 << weapon ) ) ||
 				!trap_AP_Query( Q3AP_GAME_ITEM_COUNT, q3ap_catalog_families[ammo->family_index].item_id ) ) continue;
 			ps->ammo[weapon] = Q3AP_RefillStat( ps->ammo[weapon], 200,
-				trap_AP_Query( Q3AP_GAME_TAKE_FILLER, ammo->item_id ) );
+				trap_AP_TakeFiller( ammo->item_id, 200 - ps->ammo[weapon] ) );
 		}
 		break;
 	}

@@ -50,7 +50,8 @@ foreach(target qagame ui)
 endforeach()
 
 if(BUILD_TESTING)
-    add_executable(q3ap_game_state_test tests/ap_game_state_test.c code/game/g_ap.c)
+    add_executable(q3ap_game_state_test tests/ap_game_state_test.c code/game/g_ap.c
+        ../code/qcommon/ap_runtime_state.c)
     target_compile_definitions(q3ap_game_state_test PRIVATE _CRT_SECURE_NO_WARNINGS)
     add_test(NAME q3ap_game_state COMMAND q3ap_game_state_test)
 endif()

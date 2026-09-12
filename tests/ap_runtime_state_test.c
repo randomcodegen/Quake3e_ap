@@ -23,9 +23,13 @@ int main( void ) {
 	/* An inventory replay must neither queue old refills nor discard pending ones. */
 	APCL_RuntimeClearItems( &state );
 	assert( !APCL_RuntimeReceiveItem( &state, Q3AP_HEALTH_FILLER_ITEM_ID ) );
-	assert( APCL_RuntimeTakeFiller( &state, Q3AP_HEALTH_FILLER_ITEM_ID ) == 2 );
-	assert( APCL_RuntimeTakeFiller( &state, Q3AP_HEALTH_FILLER_ITEM_ID ) == 0 );
-	assert( APCL_RuntimeTakeFiller( &state, Q3AP_ARMOR_FILLER_ITEM_ID ) == 1 );
+	assert( APCL_RuntimeTakeFiller( &state, Q3AP_HEALTH_FILLER_ITEM_ID, 0 ) == 0 );
+	assert( APCL_RuntimeTakeFiller( &state, Q3AP_HEALTH_FILLER_ITEM_ID, -25 ) == 0 );
+	assert( APCL_RuntimeTakeFiller( &state, Q3AP_HEALTH_FILLER_ITEM_ID, 1 ) == 1 );
+	APCL_RuntimeClearItems( &state );
+	assert( APCL_RuntimeTakeFiller( &state, Q3AP_HEALTH_FILLER_ITEM_ID, 100 ) == 1 );
+	assert( APCL_RuntimeTakeFiller( &state, Q3AP_HEALTH_FILLER_ITEM_ID, 0x7fffffff ) == 0 );
+	assert( APCL_RuntimeTakeFiller( &state, Q3AP_ARMOR_FILLER_ITEM_ID, 0x7fffffff ) == 1 );
 	for ( ammoIndex = 0; ammoIndex < Q3AP_AMMO_FILLER_COUNT; ++ammoIndex ) {
 		const q3ap_ammo_filler_t *ammo = &q3ap_ammo_fillers[ammoIndex];
 		assert( ammo->item_id == Q3AP_AMMO_FILLER_ITEM_BASE + ammoIndex );
@@ -34,15 +38,17 @@ int main( void ) {
 		assert( APCL_RuntimeQueueFiller( &state, ammo->item_id ) );
 		APCL_RuntimeClearItems( &state );
 		assert( !APCL_RuntimeReceiveItem( &state, ammo->item_id ) );
-		assert( APCL_RuntimeTakeFiller( &state, ammo->item_id ) == 2u * ammo->amount );
-		assert( APCL_RuntimeTakeFiller( &state, ammo->item_id ) == 0 );
+		assert( APCL_RuntimeTakeFiller( &state, ammo->item_id, 0 ) == 0 );
+		assert( APCL_RuntimeTakeFiller( &state, ammo->item_id, 1 ) == 1 );
+		assert( APCL_RuntimeTakeFiller( &state, ammo->item_id, 200 ) == 2u * ammo->amount - 1 );
+		assert( APCL_RuntimeTakeFiller( &state, ammo->item_id, 0x7fffffff ) == 0 );
 	}
 	assert( !APCL_RuntimeQueueFiller( &state, Q3AP_HEALTH_FILLER_ITEM_ID + Q3AP_REFILL_COUNT ) );
 	assert( !APCL_RuntimeQueueFiller( &state, UINT64_MAX ) );
-	assert( !APCL_RuntimeTakeFiller( &state, -1 ) );
+	assert( !APCL_RuntimeTakeFiller( &state, -1, 0x7fffffff ) );
 	state.pending_filler[2] = 0x7ffffffeu;
 	assert( APCL_RuntimeQueueFiller( &state, Q3AP_AMMO_FILLER_ITEM_BASE ) );
-	assert( APCL_RuntimeTakeFiller( &state, Q3AP_AMMO_FILLER_ITEM_BASE ) == 0x7fffffffu );
+	assert( APCL_RuntimeTakeFiller( &state, Q3AP_AMMO_FILLER_ITEM_BASE, 0x7fffffff ) == 0x7fffffffu );
 	assert( Q3AP_RefillStat( 100, 200, 1 ) == 101 );
 	assert( Q3AP_RefillStat( 199, 200, 20 ) == 200 );
 	assert( Q3AP_RefillStat( 250, 200, 1 ) == 250 );

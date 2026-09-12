@@ -1001,6 +1001,8 @@ static intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		return APCL_GameString( args[1], VMA(2), args[3] );
 	case G_AP_SEND_LOCATION:
 		return APCL_SendLocation( args[1] );
+	case G_AP_TAKE_FILLER:
+		return APCL_TakeFiller( args[1], args[2] );
 
 	default:
 		Com_Error( ERR_DROP, "Bad game system trap: %ld", (long int) args[0] );

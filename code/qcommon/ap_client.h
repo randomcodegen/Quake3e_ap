@@ -13,6 +13,7 @@ void APCL_Init( void );
 void APCL_Frame( void );
 void APCL_Shutdown( void );
 int APCL_GameQuery( int selector, int argument );
+int APCL_TakeFiller( int itemId, int capacity );
 qboolean APCL_GameString( int selector, char *buffer, int size );
 qboolean APCL_SendLocation( int locationId );
 qboolean APCL_CopyUIState( apUIState_t *state, int size );

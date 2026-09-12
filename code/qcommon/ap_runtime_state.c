@@ -78,14 +78,15 @@ int APCL_RuntimeQueueFiller( apclRuntimeState_t *state, uint64_t item_id ) {
 	return 1;
 }
 
-uint32_t APCL_RuntimeTakeFiller( apclRuntimeState_t *state, int item_id ) {
+uint32_t APCL_RuntimeTakeFiller( apclRuntimeState_t *state, int item_id, int capacity ) {
 	int index;
 	uint32_t amount;
-	if ( item_id < Q3AP_HEALTH_FILLER_ITEM_ID ||
+	if ( capacity <= 0 || item_id < Q3AP_HEALTH_FILLER_ITEM_ID ||
 		item_id >= Q3AP_HEALTH_FILLER_ITEM_ID + Q3AP_REFILL_COUNT ) return 0;
 	index = item_id - Q3AP_HEALTH_FILLER_ITEM_ID;
 	amount = state->pending_filler[index];
-	state->pending_filler[index] = 0;
+	if ( amount > (uint32_t)capacity ) amount = (uint32_t)capacity;
+	state->pending_filler[index] -= amount;
 	return amount;
 }
 

@@ -21,6 +21,10 @@
 #define SVAP_CPMA153_ITEM_GITYPE_OFFSET 0x34u
 #define SVAP_CPMA153_RESPAWN_ITEM 0x2cf59
 #define SVAP_CPMA153_DEDICATED_INTEGER 0x34ea8u
+/* Arena warmup state used by CPMA's pickup scoring at 0x2cf09 (zero during play). */
+#define SVAP_CPMA153_ARENA_OFFSET 0x32cu
+#define SVAP_CPMA153_ARENA_SIZE 0xa40u
+#define SVAP_CPMA153_ARENA_WARMUP 0x104c08u
 
 typedef struct {
 	const q3ap_catalog_pickup_t *catalog;
@@ -167,8 +171,10 @@ qboolean SVAP_CPMA_ApplyStageLimits( int fragLimit ) {
 	accepted = SV_GameCommand();
 	Cmd_TokenizeString( "callvote timelimit 0 0" );
 	accepted = SV_GameCommand() && accepted;
+	Cmd_TokenizeString( "callvote warmup 0 0" );
+	accepted = SV_GameCommand() && accepted;
 	memcpy( gvm->dataBase + SVAP_CPMA153_DEDICATED_INTEGER, &savedDedicated, sizeof( savedDedicated ) );
-	Com_Printf( "Archipelago: CPMA stage limits %s (frags %i, time 0, %s server)\n",
+	Com_Printf( "Archipelago: CPMA stage limits %s (frags %i, time 0, warmup 0, %s server)\n",
 		accepted ? "applied" : "rejected", fragLimit, savedDedicated ? "dedicated" : "listen" );
 	return accepted;
 }
@@ -812,26 +818,32 @@ void SVAP_CPMA_BeforeFrame( void ) {
 
 static void SVAP_CPMA_ApplyFiller( playerState_t *player ) {
 	sharedEntity_t *ent;
-	int health, limit, index;
+	int health, limit, index, arena, warmup;
 	if ( !player || player->pm_type != PM_NORMAL || player->stats[STAT_HEALTH] <= 0 ||
 		!SVAP_CPMA153_HasLayout() ) return;
 	ent = SV_GentityNum( player->clientNum );
+	if ( !SVAP_CPMA153_PrivateInt( ent, SVAP_CPMA153_ARENA_OFFSET, &arena ) || arena < 0 ||
+		(uint32_t)arena >= gvm->exactDataLength / SVAP_CPMA153_ARENA_SIZE ||
+		!SVAP_CPMA153_VMInt( SVAP_CPMA153_ARENA_WARMUP + (uint32_t)arena * SVAP_CPMA153_ARENA_SIZE,
+			&warmup ) || warmup ) return;
 	if ( !SVAP_CPMA153_PrivateInt( ent, SVAP_CPMA153_HEALTH_OFFSET, &health ) ||
 		health != player->stats[STAT_HEALTH] ) return;
-	limit = 2 * player->stats[STAT_MAX_HEALTH];
+	limit = player->stats[STAT_MAX_HEALTH];
 	health = Q3AP_RefillStat( health, limit,
-		APCL_GameQuery( Q3AP_GAME_TAKE_FILLER, Q3AP_HEALTH_FILLER_ITEM_ID ) );
+		APCL_TakeFiller( Q3AP_HEALTH_FILLER_ITEM_ID, limit - health ) );
 	memcpy( (byte *)ent + SVAP_CPMA153_HEALTH_OFFSET, &health, sizeof( health ) );
 	player->stats[STAT_HEALTH] = health;
+	limit *= 2;
 	player->stats[STAT_ARMOR] = Q3AP_RefillStat( player->stats[STAT_ARMOR], limit,
-		APCL_GameQuery( Q3AP_GAME_TAKE_FILLER, Q3AP_ARMOR_FILLER_ITEM_ID ) );
+		APCL_TakeFiller( Q3AP_ARMOR_FILLER_ITEM_ID, limit - player->stats[STAT_ARMOR] ) );
 	for ( index = 0; index < Q3AP_AMMO_FILLER_COUNT; ++index ) {
 		const q3ap_ammo_filler_t *ammo = &q3ap_ammo_fillers[index];
 		int weapon = SVAP_CPMA_WeaponForFamily( ammo->family_index );
 		if ( weapon == WP_NONE || player->ammo[weapon] < 0 ||
+			!( player->stats[STAT_WEAPONS] & ( 1 << weapon ) ) ||
 			!( svap.familyMask & ( 1u << ammo->family_index ) ) ) continue;
 		player->ammo[weapon] = Q3AP_RefillStat( player->ammo[weapon], 200,
-			APCL_GameQuery( Q3AP_GAME_TAKE_FILLER, ammo->item_id ) );
+			APCL_TakeFiller( ammo->item_id, 200 - player->ammo[weapon] ) );
 	}
 }
 

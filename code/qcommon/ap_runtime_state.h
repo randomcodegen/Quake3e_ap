@@ -20,7 +20,7 @@ void APCL_RuntimeInit( apclRuntimeState_t *state );
 int APCL_RuntimeClearItems( apclRuntimeState_t *state );
 int APCL_RuntimeReceiveItem( apclRuntimeState_t *state, uint64_t item_id );
 int APCL_RuntimeQueueFiller( apclRuntimeState_t *state, uint64_t item_id );
-uint32_t APCL_RuntimeTakeFiller( apclRuntimeState_t *state, int item_id );
+uint32_t APCL_RuntimeTakeFiller( apclRuntimeState_t *state, int item_id, int capacity );
 int APCL_RuntimeCheckLocation( apclRuntimeState_t *state, uint64_t location_id );
 int APCL_RuntimeQueueLocation( apclRuntimeState_t *state, uint64_t location_id );
 int APCL_RuntimeLocationPending( const apclRuntimeState_t *state, int location_id );

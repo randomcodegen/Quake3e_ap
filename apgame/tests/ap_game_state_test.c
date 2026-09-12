@@ -6,6 +6,13 @@
 
 #include "../code/game/g_local.h"
 #include "../code/game/g_ap.h"
+#include "../../code/qcommon/ap_runtime_state.h"
+
+static apclRuntimeState_t filler;
+
+int trap_AP_TakeFiller( int itemId, int capacity ) {
+	return (int)APCL_RuntimeTakeFiller( &filler, itemId, capacity );
+}
 
 static int generation = 1;
 static int query_count;
@@ -202,6 +209,45 @@ int main( void ) {
 	assert( sent_locations[sent_before + 1] == GAP_KillLocation( 2, 1 ) );
 	client.ps.powerups[PW_QUAD] = 0;
 	active_map_index = 1;
+
+	/* Refills wait through warmup/death/spectating and only consume the deficit. */
+	level.maxclients = 1;
+	g_entities[0].health = 99;
+	client.ps.stats[STAT_MAX_HEALTH] = 100;
+	client.ps.stats[STAT_ARMOR] = 199;
+	client.ps.stats[STAT_WEAPONS] |= 1 << WP_SHOTGUN;
+	client.ps.ammo[WP_SHOTGUN] = 199;
+	APCL_RuntimeQueueFiller( &filler, Q3AP_HEALTH_FILLER_ITEM_ID );
+	APCL_RuntimeQueueFiller( &filler, Q3AP_HEALTH_FILLER_ITEM_ID );
+	APCL_RuntimeQueueFiller( &filler, Q3AP_ARMOR_FILLER_ITEM_ID );
+	APCL_RuntimeQueueFiller( &filler, Q3AP_ARMOR_FILLER_ITEM_ID );
+	APCL_RuntimeQueueFiller( &filler, Q3AP_AMMO_FILLER_ITEM_BASE );
+	level.warmupTime = -1; GAP_Synchronize();
+	level.warmupTime = 0;
+	level.intermissiontime = 1; GAP_Synchronize();
+	level.intermissiontime = 0;
+	client.ps.pm_type = PM_SPECTATOR; GAP_Synchronize();
+	client.ps.pm_type = PM_DEAD; GAP_Synchronize();
+	assert( filler.pending_filler[0] == 2 && filler.pending_filler[1] == 2 && filler.pending_filler[2] == 2 );
+	client.ps.pm_type = PM_NORMAL; GAP_Synchronize();
+	assert( g_entities[0].health == 100 && client.ps.stats[STAT_HEALTH] == 100 );
+	assert( client.ps.stats[STAT_ARMOR] == 200 && client.ps.ammo[WP_SHOTGUN] == 200 );
+	GAP_Synchronize();
+	assert( filler.pending_filler[0] == 1 && filler.pending_filler[1] == 1 && filler.pending_filler[2] == 1 );
+	/* Starting another arena retains the unused queue, including overheal. */
+	g_entities[0].health = 125;
+	GAP_Init();
+	assert( g_entities[0].health == 125 && filler.pending_filler[0] == 1 );
+	g_entities[0].health = 98;
+	client.ps.stats[STAT_ARMOR] = 190;
+	client.ps.ammo[WP_SHOTGUN] = 190;
+	client.ps.stats[STAT_WEAPONS] &= ~( 1 << WP_SHOTGUN );
+	GAP_Synchronize();
+	assert( g_entities[0].health == 99 && client.ps.stats[STAT_ARMOR] == 191 );
+	assert( client.ps.ammo[WP_SHOTGUN] == 190 && filler.pending_filler[2] == 1 );
+	client.ps.stats[STAT_WEAPONS] |= 1 << WP_SHOTGUN;
+	GAP_Synchronize();
+	assert( client.ps.ammo[WP_SHOTGUN] == 191 && filler.pending_filler[2] == 0 );
 
 	bad_api = 1; GAP_Init(); assert( !gap_state.compatible ); bad_api = 0;
 	bad_hash = 1; GAP_Init(); assert( !gap_state.compatible );

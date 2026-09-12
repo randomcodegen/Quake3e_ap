@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import zipfile
 
 
@@ -18,6 +19,14 @@ def archive(path, files):
         assert set(result.namelist()) == set(files)
         for name, source in files.items():
             assert result.read(name) == source.read_bytes(), name
+
+
+def tracked(repo, *pathspecs):
+    output = subprocess.check_output([
+        "git", "-c", f"safe.directory={repo.as_posix()}", "-C", str(repo),
+        "ls-files", "-z", "--", *(pathspecs or (".",)),
+    ])
+    return [Path(name.decode()) for name in output.split(b"\0") if name]
 
 
 def main():
@@ -51,13 +60,13 @@ def main():
     for name in ("launch-client.ps1", "launch-cpma-ap.ps1", "q3ap-launch.cmd", "cpma-ap-launch.cmd"):
         client[name] = engine / "apgame/release" / name
     client["README.md"] = engine / "README.md"
-    client["RELEASE-NOTES.md"] = engine / "docs/release_candidate.md"
     client["docs/respawn_timers.md"] = engine / "docs/respawn_timers.md"
     for source in (world / "docs").glob("*.md"):
         client[f"docs/{source.name}"] = source
     client["licenses/Quake3e-GPL-2.0.txt"] = engine / "COPYING.txt"
     client["licenses/q3ap-upstream.md"] = engine / "apgame/UPSTREAM.md"
     client["licenses/APCc-README.md"] = apcc / "README.md"
+    client["licenses/APCc-LGPL-2.1.txt"] = apcc / "LICENSE"
     for package in ("glib", "jansson", "libwebsockets", "openssl", "pcre2",
                     "libuv", "zlib", "libiconv", "gettext"):
         client[f"licenses/{package}.txt"] = share / package / "copyright"
@@ -69,26 +78,38 @@ def main():
             if source.is_file() and source.suffix in (".py", ".json", ".md"):
                 apworld[f"quake3/{folder}/{source.name}"] = source
 
-    for name, source in (client | apworld).items():
-        if not source.is_file():
-            raise FileNotFoundError(source)
+    source = {}
+    for relative in tracked(engine):
+        path = engine / relative
+        if path.is_file():
+            source[f"Quake3e_ap/{relative.as_posix()}"] = path
+    for relative in tracked(apcc):
+        source[f"APCc/{relative.as_posix()}"] = apcc / relative
+    for relative in tracked(args.archipelago, "LICENSE", "worlds/quake3"):
+        source[f"Archipelago_q3/{relative.as_posix()}"] = args.archipelago / relative
+
+    for name, input_file in (client | apworld | source).items():
+        if not input_file.is_file():
+            raise FileNotFoundError(input_file)
         assert Path(name).suffix not in (".pk3", ".bsp", ".aas", ".qvm", ".cfg", ".log", ".cache"), name
         assert "__pycache__" not in name and "q3key" not in name
     manifest = json.loads((world / "archipelago.json").read_text())
     args.output.mkdir(parents=True, exist_ok=True)
     paths = [args.output / f"Quake3-AP-{manifest['world_version']}-windows-x64.zip",
-             args.output / "quake3.apworld"]
+             args.output / "quake3.apworld",
+             args.output / f"Quake3-AP-{manifest['world_version']}-source.zip"]
     checksums = args.output / "SHA256SUMS.txt"
     for path in [*paths, checksums]:
         if path.exists():
             raise FileExistsError(path)
     archive(paths[0], client)
     archive(paths[1], apworld)
+    archive(paths[2], source)
     with checksums.open("x", encoding="utf-8") as output:
         for path in paths:
             output.write(f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}\n")
             print(f"{path}: {path.stat().st_size:,} bytes")
-    print("Local release candidate only; see RELEASE-NOTES.md for publication blockers.")
+    print("Archives verified; SHA-256 checksums written. Nothing uploaded.")
 
 
 if __name__ == "__main__":

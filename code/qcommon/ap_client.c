@@ -14,6 +14,7 @@ void APCL_Init( void ) {}
 void APCL_Frame( void ) {}
 void APCL_Shutdown( void ) {}
 int APCL_GameQuery( int selector, int argument ) { (void)selector; (void)argument; return 0; }
+int APCL_TakeFiller( int itemId, int capacity ) { (void)itemId; (void)capacity; return 0; }
 qboolean APCL_GameString( int selector, char *buffer, int size ) {
 	(void)selector;
 	if ( buffer && size > 0 ) buffer[0] = '\0';
@@ -644,20 +645,21 @@ int APCL_GameQuery( int selector, int argument ) {
 	case Q3AP_GAME_WEAPON_LOGIC_PERCENTAGE: return authenticated ? apcl_slot.weapon_logic_percentage : 0;
 	case Q3AP_GAME_ITEM_LOGIC_PERCENTAGE: return authenticated ? apcl_slot.item_logic_percentage : 0;
 	case Q3AP_GAME_ITEM_COUNT: return authenticated ? (int)APCL_RuntimeItemCount( &apcl_runtime, argument ) : 0;
-	case Q3AP_GAME_TAKE_FILLER: {
-		int amount;
-		if ( !authenticated ) return 0;
-		g_mutex_lock( &apcl_fillerMutex );
-		amount = (int)APCL_RuntimeTakeFiller( &apcl_runtime, argument );
-		g_mutex_unlock( &apcl_fillerMutex );
-		return amount;
-	}
 	case Q3AP_GAME_LOCATION_CHECKED: return authenticated ? APCL_RuntimeLocationChecked( &apcl_runtime, argument ) : 0;
 	case Q3AP_GAME_ACTIVE_MAP_INDEX: return authenticated ? apcl_activeMapIndex : -1;
 	case Q3AP_GAME_LOCATION_CLASSIFICATION: return authenticated ?
 		APCL_RuntimeLocationClassification( &apcl_runtime, argument ) : Q3AP_CLASSIFICATION_UNKNOWN;
 	default: return 0;
 	}
+}
+
+int APCL_TakeFiller( int itemId, int capacity ) {
+	int amount;
+	if ( !APCL_SessionReady() || sv.state != SS_GAME || apcl_activeMapIndex < 0 || capacity <= 0 ) return 0;
+	g_mutex_lock( &apcl_fillerMutex );
+	amount = (int)APCL_RuntimeTakeFiller( &apcl_runtime, itemId, capacity );
+	g_mutex_unlock( &apcl_fillerMutex );
+	return amount;
 }
 
 qboolean APCL_GameString( int selector, char *buffer, int size ) {

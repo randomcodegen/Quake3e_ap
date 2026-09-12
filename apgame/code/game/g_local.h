@@ -981,6 +981,7 @@ int		trap_GeneticParentsAndChildSelection(int numranks, float *ranks, int *paren
 
 void	trap_SnapVector( float *v );
 int		trap_AP_Query( int selector, int argument );
+int		trap_AP_TakeFiller( int itemId, int capacity );
 qboolean trap_AP_GetString( int selector, char *buffer, int size );
 qboolean trap_AP_SendLocation( int locationId );
 

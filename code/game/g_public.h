@@ -402,7 +402,8 @@ typedef enum {
 
 	G_AP_QUERY = 710,
 	G_AP_GET_STRING,
-	G_AP_SEND_LOCATION
+	G_AP_SEND_LOCATION,
+	G_AP_TAKE_FILLER
 
 } gameImport_t;
 

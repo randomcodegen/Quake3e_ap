@@ -11,9 +11,17 @@ Go to [Releases](../../releases) section to download latest binaries for your pl
 
 ## Archipelago custom console settings
 
+Version 1.0.1 disables CPMA stage warmup and keeps unused health, armor, and
+ammo filler queued until it can help during a match. Health refills up to the
+normal maximum (usually 100), armor up to twice that maximum (usually 200),
+and ammo up to 200 for unlocked weapons the player holds. Excess stays queued
+between stages in the current connection; disconnecting or closing the client
+clears the queue. Replace the engine and both AP module folders together when
+upgrading. Existing 1.0.0 seeds remain compatible.
+
 For release installation and play, see the APWorld's `docs/setup_en.md`
-included in the client ZIP. Release candidate packaging is described in
-`docs/release_candidate.md`.
+included in the client ZIP. Release archives are built with
+`apgame/tools/package_release.py`.
 
 These are the custom settings added by this AP fork, not the complete Quake3e
 or CPMA cvar list. Defaults below are code defaults; an existing config or

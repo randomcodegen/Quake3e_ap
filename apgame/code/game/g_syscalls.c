@@ -39,6 +39,10 @@ int trap_AP_Query( int selector, int argument ) {
 	return (int)syscall( G_AP_QUERY, selector, argument );
 }
 
+int trap_AP_TakeFiller( int itemId, int capacity ) {
+	return (int)syscall( G_AP_TAKE_FILLER, itemId, capacity );
+}
+
 qboolean trap_AP_GetString( int selector, char *buffer, int size ) {
 	return (qboolean)syscall( G_AP_GET_STRING, selector, buffer, size );
 }
