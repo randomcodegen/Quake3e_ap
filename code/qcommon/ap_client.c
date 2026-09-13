@@ -441,7 +441,7 @@ static void APCL_CPMAStageLimits_f( void ) {
 	if ( sv.state != SS_GAME || Q_stricmp( Cvar_VariableString( "fs_game" ), "cpma-ap" ) ) return;
 	map = Q3AP_CatalogMapByKey( Cvar_VariableString( "mapname" ) );
 	if ( !map ) return;
-	if ( !SVAP_CPMA_ApplyStageLimits( map->frag_limit ) )
+	if ( !SVAP_CPMA_ApplyStageLimits( map->game_type, map->frag_limit ) )
 		Com_Printf( "Archipelago: could not apply CPMA stage limits (unsupported game VM or rejected command)\n" );
 }
 

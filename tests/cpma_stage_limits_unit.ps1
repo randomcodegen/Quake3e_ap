@@ -12,6 +12,8 @@ $harness = @'
 #include <string.h>
 typedef int qboolean;
 #define qfalse 0
+#define qtrue 1
+#define Q_stricmp _stricmp
 #define SS_GAME 2
 #define SVAP_CPMA153_DEDICATED_INTEGER 0x34ea8u
 static unsigned char data[0x34eacu];
@@ -19,6 +21,10 @@ static struct { unsigned char *dataBase; } vm = { data }, *gvm = &vm;
 static struct { int state; } sv = { SS_GAME };
 static int enabled = 1, layout = 1, calls, fail;
 static char command[100];
+static const char *currentMode, *expected[4];
+static const char *Cvar_VariableString(const char *name) {
+    assert(!strcmp(name, "mode_current")); return currentMode;
+}
 static int SVAP_CPMA_IsEnabled(void) { return enabled; }
 static int SVAP_CPMA153_HasLayout(void) { return layout; }
 static int SVAP_CPMA153_VMInt(unsigned address, int *value) {
@@ -32,29 +38,38 @@ static void Cmd_TokenizeString(const char *text) { strcpy(command, text); }
 static int SV_GameCommand(void) {
     int dedicated; SVAP_CPMA153_VMInt(SVAP_CPMA153_DEDICATED_INTEGER, &dedicated);
     assert(dedicated == 1);
-    assert(!strcmp(command, calls++ ? "callvote timelimit 0 0" : "callvote limit 10 0"));
-    return !fail;
+    assert(calls < 4 && expected[calls]);
+    assert(!strcmp(command, expected[calls++]));
+    return calls != fail;
 }
 #define Com_Printf(...) ((void)0)
 '@
 $checks = @'
 int main(void) {
-    int original, restored;
-    for (original = 0; original <= 1; ++original) {
-        for (fail = 0; fail <= 1; ++fail) {
+    int original, restored, gameType, changeMode, index;
+    for (original = 0; original <= 1; ++original)
+    for (gameType = 0; gameType <= 1; ++gameType)
+    for (changeMode = 0; changeMode <= 1; ++changeMode) {
+        currentMode = (gameType ^ changeMode) ? "1V1" : "FFA";
+        index = 0;
+        if (changeMode) expected[index++] = gameType ? "callvote mode 1v1 0" : "callvote mode ffa 0";
+        expected[index++] = "callvote limit 10 0";
+        expected[index++] = "callvote timelimit 0 0";
+        expected[index++] = "callvote warmup 0 0";
+        for (fail = 0; fail <= index; ++fail) {
             memcpy(data + SVAP_CPMA153_DEDICATED_INTEGER, &original, sizeof(original));
             calls = 0;
-            assert(SVAP_CPMA_ApplyStageLimits(10) == !fail);
-            assert(calls == 2);
+            assert(SVAP_CPMA_ApplyStageLimits(gameType, 10) == !fail);
+            assert(calls == index);
             SVAP_CPMA153_VMInt(SVAP_CPMA153_DEDICATED_INTEGER, &restored);
             assert(restored == original);
         }
     }
-    calls = 0; layout = 0; assert(!SVAP_CPMA_ApplyStageLimits(10));
-    layout = 1; enabled = 0; assert(!SVAP_CPMA_ApplyStageLimits(10));
-    enabled = 1; assert(!SVAP_CPMA_ApplyStageLimits(0));
+    calls = 0; layout = 0; assert(!SVAP_CPMA_ApplyStageLimits(0, 10));
+    layout = 1; enabled = 0; assert(!SVAP_CPMA_ApplyStageLimits(0, 10));
+    enabled = 1; assert(!SVAP_CPMA_ApplyStageLimits(0, 0));
     assert(calls == 0);
-    puts("PASS: listen/dedicated dispatch, restoration on success/failure, and layout guards.");
+    puts("PASS: duel/FFA mode changes precede limits, listen/dedicated restoration, and layout guards.");
     return 0;
 }
 '@

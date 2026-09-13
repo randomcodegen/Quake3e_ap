@@ -159,16 +159,22 @@ static qboolean SVAP_CPMA153_VMInt( uint32_t address, int *value ) {
 	return qtrue;
 }
 
-qboolean SVAP_CPMA_ApplyStageLimits( int fragLimit ) {
+qboolean SVAP_CPMA_ApplyStageLimits( int gameType, int fragLimit ) {
 	int savedDedicated, consoleAccess = 1;
-	qboolean accepted;
+	const char *mode = gameType == 1 ? "1v1" : "ffa";
+	qboolean accepted = qtrue;
 	if ( sv.state != SS_GAME || !SVAP_CPMA_IsEnabled() || fragLimit < 1 ||
 		!SVAP_CPMA153_HasLayout() ||
 		!SVAP_CPMA153_VMInt( SVAP_CPMA153_DEDICATED_INTEGER, &savedDedicated ) ) return qfalse;
 	// CPMA 1.53 ConsoleCommand gates admin votes on its cached dedicated integer.
 	memcpy( gvm->dataBase + SVAP_CPMA153_DEDICATED_INTEGER, &consoleAccess, sizeof( consoleAccess ) );
+	// mode_start only selects the initial mode; CPMA preserves it across map loads.
+	if ( Q_stricmp( Cvar_VariableString( "mode_current" ), mode ) ) {
+		Cmd_TokenizeString( va( "callvote mode %s 0", mode ) );
+		accepted = SV_GameCommand();
+	}
 	Cmd_TokenizeString( va( "callvote limit %i 0", fragLimit ) );
-	accepted = SV_GameCommand();
+	accepted = SV_GameCommand() && accepted;
 	Cmd_TokenizeString( "callvote timelimit 0 0" );
 	accepted = SV_GameCommand() && accepted;
 	Cmd_TokenizeString( "callvote warmup 0 0" );
