@@ -15,7 +15,7 @@ $expectedPak0 = '7CE8B3910620CD50A09E4F1100F426E8C6180F68895D589F80E6BD95AF54BCA
 
 $relativeFiles = @('quake3e.x64.exe', 'quake3e.ded.x64.exe', 'quake3e_opengl_x86_64.dll',
     'glib-2.0-0.dll', 'iconv-2.dll', 'intl-8.dll', 'jansson.dll', 'libcrypto-3-x64.dll',
-    'libssl-3-x64.dll', 'pcre2-8.dll', 'uv.dll', 'websockets.dll', 'z.dll',
+    'libssl-3-x64.dll', 'pcre2-8.dll', 'z.dll',
     'q3ap\qagamex86_64.dll', 'q3ap\uix86_64.dll',
     'q3ap\models\powerups\ap\filler.md3', 'q3ap\models\powerups\ap\useful.md3',
     'q3ap\models\powerups\ap\progression.md3', 'q3ap\models\powerups\ap\trap.md3',

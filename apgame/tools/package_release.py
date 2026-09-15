@@ -46,8 +46,8 @@ def main():
     names = (
         "quake3e.x64.exe", "quake3e_vulkan_x86_64.dll", "quake3e_opengl_x86_64.dll",
         "glib-2.0-0.dll", "iconv-2.dll", "intl-8.dll", "jansson.dll",
-        "libcrypto-3-x64.dll", "libssl-3-x64.dll", "pcre2-8.dll", "uv.dll",
-        "websockets.dll", "z.dll",
+        "libcrypto-3-x64.dll", "libssl-3-x64.dll", "pcre2-8.dll",
+        "z.dll",
     )
     client = {name: binaries / name for name in names}
     client["q3ap/qagamex86_64.dll"] = modules / "qagamex86_64.dll"
@@ -67,8 +67,9 @@ def main():
     client["licenses/q3ap-upstream.md"] = engine / "apgame/UPSTREAM.md"
     client["licenses/APCc-README.md"] = apcc / "README.md"
     client["licenses/APCc-LGPL-2.1.txt"] = apcc / "LICENSE"
-    for package in ("glib", "jansson", "libwebsockets", "openssl", "pcre2",
-                    "libuv", "zlib", "libiconv", "gettext"):
+    client["licenses/libwebsockets.txt"] = Path(cache["libwebsockets_SOURCE_DIR:STATIC"]) / "LICENSE"
+    for package in ("glib", "jansson", "openssl", "pcre2",
+                    "zlib", "libiconv", "gettext"):
         client[f"licenses/{package}.txt"] = share / package / "copyright"
 
     apworld = {f"quake3/{p.name}": p for p in world.glob("*.py")}
@@ -84,7 +85,7 @@ def main():
         if path.is_file():
             source[f"Quake3e_ap/{relative.as_posix()}"] = path
     for relative in tracked(apcc):
-        source[f"APCc/{relative.as_posix()}"] = apcc / relative
+        source[f"Quake3e_ap/APCc/{relative.as_posix()}"] = apcc / relative
     for relative in tracked(args.archipelago, "LICENSE", "worlds/quake3"):
         source[f"Archipelago_q3/{relative.as_posix()}"] = args.archipelago / relative
 

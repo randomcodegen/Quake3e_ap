@@ -42,7 +42,7 @@ $engineOutput = Join-Path $engineBuild $Configuration
 $moduleOutput = Join-Path $moduleBuild $Configuration
 $files = @('quake3e.x64.exe', 'quake3e.ded.x64.exe', 'quake3e_opengl_x86_64.dll',
     'glib-2.0-0.dll', 'iconv-2.dll', 'intl-8.dll', 'jansson.dll', 'libcrypto-3-x64.dll',
-    'libssl-3-x64.dll', 'pcre2-8.dll', 'uv.dll', 'websockets.dll', 'z.dll')
+    'libssl-3-x64.dll', 'pcre2-8.dll', 'z.dll')
 foreach ($name in $files) {
     $source = Join-Path $engineOutput $name
     if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Required bundle file missing: $source" }
@@ -55,8 +55,9 @@ Copy-Item -LiteralPath (Join-Path $moduleRoot 'UPSTREAM.md') -Destination (Join-
 Copy-Item -LiteralPath (Join-Path $apccRoot 'README.md') -Destination (Join-Path $resolvedBundle 'licenses\APCc-README.md')
 
 $installed = Join-Path $engineBuild 'vcpkg_installed\x64-windows\share'
-foreach ($package in @('glib', 'jansson', 'libwebsockets', 'openssl', 'pcre2', 'libuv', 'zlib', 'libiconv', 'gettext')) {
+foreach ($package in @('glib', 'jansson', 'openssl', 'pcre2', 'zlib', 'libiconv', 'gettext')) {
     $copyright = Join-Path $installed "$package\copyright"
     if (Test-Path -LiteralPath $copyright) { Copy-Item -LiteralPath $copyright -Destination (Join-Path $resolvedBundle "licenses\$package.txt") }
 }
+Copy-Item -LiteralPath (Join-Path $engineBuild '_deps\libwebsockets-src\LICENSE') -Destination (Join-Path $resolvedBundle 'licenses\libwebsockets.txt')
 Write-Host "Bundle staged at $resolvedBundle"

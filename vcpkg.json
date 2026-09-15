@@ -5,7 +5,8 @@
   "dependencies": [
     "glib",
     "jansson",
-    "libwebsockets",
+    "openssl",
+    "zlib",
     "pkgconf"
   ]
 }
